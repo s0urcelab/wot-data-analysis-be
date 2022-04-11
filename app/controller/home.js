@@ -8,7 +8,7 @@ class HomeController extends Controller {
     async index() {
         const { ctx } = this;
 
-        ctx.body = 'api version 1.0'
+        ctx.body = 'api version 1.1'
         ctx.status = 200
     }
 
@@ -20,16 +20,6 @@ class HomeController extends Controller {
         ctx.service.tanks.getTankggList(ctx.params.ver);
 
         ctx.body = `开始保存${ctx.params.ver}版本tanks.gg列表`
-        ctx.status = 200
-    }
-
-    // 生成坦克列表
-    async refreshList() {
-        const { ctx } = this;
-
-        await ctx.service.tanks.refreshList();
-
-        ctx.body = `生成坦克列表`
         ctx.status = 200
     }
 

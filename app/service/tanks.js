@@ -122,11 +122,6 @@ class TankService extends Service {
 
         try {
             await ctx.model.Tanks.insertMany(mergeList, { ordered: false })
-            // await this.ctx.model.Tanks.insertMany(mergeList)
-            // const ids = mergeList.map(v => v._id)
-            // const set = new Set(ids)
-            // this.ctx.logger.error(ids.length, set.size)
-            // console.log(`更新全部列表，插入${mergeList.length}条数据`)
         } catch (error) {
             // ctx.logger.error(error)
             console.log('更新部分列表')

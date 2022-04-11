@@ -53,6 +53,8 @@ const fetchMastery = async (ctx, lv) => {
                 return ctx.model.Tanks.insertMany({
                     ...ggRes,
                     _id: item.tank_id,
+                    premium: 1,
+                    collector_vehicle: 0,
                     name: item.tank_name,
                     tank_icon: item.tank_icon,
                     [`mastery_${lv}`]: item.mastery,
