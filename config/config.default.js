@@ -23,17 +23,6 @@ module.exports = appInfo => {
     // myAppName: 'egg',
   };
 
-  config.mongoose = {
-    client: {
-      url: `mongodb://${process.env.APP_DB_URL}`,
-      options: {
-        // useFindAndModify: false,
-      },
-      // mongoose global plugins, expected a function or an array of function and options
-      // plugins: [createdPlugin, [updatedPlugin, pluginOptions]],
-    },
-  };
-
   config.validate = {
     convert: true,
     // validateRoot: false,

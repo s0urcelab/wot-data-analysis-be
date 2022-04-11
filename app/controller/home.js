@@ -12,13 +12,34 @@ class HomeController extends Controller {
         ctx.status = 200
     }
 
+    // 保存tanks.gg坦克列表
+    async storeTanksgg() {
+        const { ctx } = this;
+
+        // v11600
+        ctx.service.tanks.getTankggList(ctx.params.ver);
+
+        ctx.body = `开始保存${ctx.params.ver}版本tanks.gg列表`
+        ctx.status = 200
+    }
+
+    // 生成坦克列表
+    async refreshList() {
+        const { ctx } = this;
+
+        await ctx.service.tanks.refreshList();
+
+        ctx.body = `生成坦克列表`
+        ctx.status = 200
+    }
+
     // 手动触发采集
     async manualGather() {
         const { ctx, app } = this;
 
         await app.runSchedule('update_mastery')
 
-        ctx.body = '采集完成'
+        ctx.body = '手动更新击杀环数据完成'
         ctx.status = 200
     }
 
