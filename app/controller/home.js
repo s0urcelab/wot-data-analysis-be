@@ -1,6 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
+const dayjs = require('dayjs')
 
 const hasKey = (params = {}, key) => params.hasOwnProperty(key)
 
@@ -9,6 +10,82 @@ class HomeController extends Controller {
         const { ctx } = this;
 
         ctx.body = 'api version 1.1'
+        ctx.status = 200
+    }
+
+    // 获取评论列表
+    async getComments() {
+        const { ctx } = this;
+
+        const total = await ctx.model.Comments.countDocuments()
+        const mainList = await ctx.model.Comments
+            .find({ reply_to: { $exists: false } })
+            .select('-__v')
+            .lean()
+        const searchTask = mainList.map(v => {
+            return ctx.model.Comments
+                .find({ reply_to: v._id })
+                .sort('date')
+                .select('-__v')
+        })
+
+        const subList = await Promise.all(searchTask)
+
+        ctx.body = {
+            errCode: 0,
+            data: {
+                list: mainList.map((comm, idx) => ({
+                    ...comm,
+                    replyList: subList[idx]
+                })),
+                total,
+            },
+        }
+        ctx.status = 200
+    }
+
+    // 增加评论
+    async addComment() {
+        const { ctx } = this;
+        let atText
+
+        const rule = {
+            author: 'string',
+            avatar: 'string?',
+            content: 'string',
+            reply_to: 'string?',
+            at: 'string?',
+        }
+        // 校验参数
+        ctx.validate(rule, ctx.request.body)
+
+        const {
+            author,
+            content,
+            reply_to,
+            at,
+        } = ctx.request.body
+
+        if (at) {
+            const atComm = await ctx.model.Comments.findById(at).lean()
+            atText = atComm.author || '无名氏'
+        }
+        const authorType = author === 'POWER_OVERWHELMING' ? 1 : 0
+        await ctx.model.Comments.insertMany({
+            author: authorType ? 's0urce' : author,
+            author_type: authorType,
+            avatar: authorType ? 'https://s2.loli.net/2022/04/20/HmKjQs8ZqA5v296.jpg' : `https://joeschmoe.io/api/v1/${author}`,
+            content,
+            reply_to,
+            at,
+            ...atText && { at_text: atText },
+            date: dayjs().toDate(),
+        })
+
+        ctx.body = {
+            errCode: 0,
+            data: '评论成功！',
+        }
         ctx.status = 200
     }
 

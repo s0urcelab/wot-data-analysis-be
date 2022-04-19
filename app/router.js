@@ -13,4 +13,7 @@ module.exports = app => {
   router.get('/preData', controller.home.preData);
   router.get('/tankList', controller.home.tankList);
   router.get('/history', controller.home.singleTankHistory);
+
+  router.get('/commentList', controller.home.getComments);
+  router.post('/addComment', controller.home.addComment);
 };

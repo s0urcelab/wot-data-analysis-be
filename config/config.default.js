@@ -28,6 +28,13 @@ module.exports = appInfo => {
     // validateRoot: false,
   };
 
+  config.security = {
+    csrf: {
+      enable: false,
+    },
+    domainWhiteList: ['wot.src.moe'],
+  };
+
   return {
     ...config,
     ...userConfig,
