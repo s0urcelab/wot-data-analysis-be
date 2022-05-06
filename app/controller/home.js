@@ -9,7 +9,7 @@ class HomeController extends Controller {
     async index() {
         const { ctx } = this;
 
-        ctx.body = 'api version 1.1'
+        ctx.body = '1.1'
         ctx.status = 200
     }
 
