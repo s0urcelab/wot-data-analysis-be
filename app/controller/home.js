@@ -13,6 +13,21 @@ class HomeController extends Controller {
         ctx.status = 200
     }
 
+    // 当前采集状态
+    async gatherStatus() {
+        const { ctx } = this;
+        const checkTime = dayjs()
+
+        const [{ lastUpdate }] = await ctx.model.Tanks.aggregate()
+            .group({ _id: null, lastUpdate: { '$max': '$update_date' } })
+
+        const isBefore12 = checkTime.isBefore(dayjs().set('h', 13), 'h')
+        const standardTime = isBefore12 ? dayjs().subtract(1, 'day') : dayjs()
+        const isGathered = dayjs(lastUpdate).isSame(standardTime, 'day')
+        
+        ctx.status = isGathered ? 200 : 502
+    }
+
     // 获取评论列表
     async getComments() {
         const { ctx } = this;
