@@ -89,7 +89,7 @@ class HomeController extends Controller {
         await ctx.model.Comments.insertMany({
             author: authorType ? 's0urce' : author,
             author_type: authorType,
-            avatar: authorType ? 'https://s2.loli.net/2022/04/20/HmKjQs8ZqA5v296.jpg' : `https://joeschmoe.io/api/v1/${author}`,
+            avatar: authorType ? 'https://blog.src.moe/img/avatar.jpg' : `https://joeschmoe.io/api/v1/${author}`,
             content,
             reply_to,
             at,
