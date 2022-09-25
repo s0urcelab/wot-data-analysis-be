@@ -3,6 +3,10 @@
 // this.app => application 对象
 
 module.exports = {
+    // push msg templ
+    pushMsg(title, content, url) {
+        return `http://xdroid.net/api/message?k=${process.env.PUSH_KEY}&t=${title}&c=${content}&u=${url}`
+    },
     // 重试
     async retry(cb, count) {
         if (count === 0) return;

@@ -24,7 +24,7 @@ class HomeController extends Controller {
         const isBefore12 = checkTime.isBefore(dayjs().set('h', 13), 'h')
         const standardTime = isBefore12 ? dayjs().subtract(1, 'day') : dayjs()
         const isGathered = dayjs(lastUpdate).isSame(standardTime, 'day')
-        
+
         ctx.status = isGathered ? 200 : 502
     }
 
@@ -97,6 +97,15 @@ class HomeController extends Controller {
             date: dayjs().toDate(),
         })
 
+        // push api通知
+        if (!authorType) {
+            await ctx.curl(ctx.helper.pushMsg(
+                'wot.src.moe有新评论了',
+                `${author}：${content}`,
+                'https://wot.src.moe/message'
+            ), { dataType: 'json' })
+        }
+        
         ctx.body = {
             errCode: 0,
             data: '评论成功！',
