@@ -27,6 +27,8 @@ RUN npm i --registry=https://registry.npmmirror.com
 # 拷贝所有源代码到工作目录
 COPY . /usr/wot-data-analysis
 
+RUN chmod 755 /usr/wot-data-analysis/badgesModifier/modifier
+
 # 暴露容器端口
 EXPOSE 7001
 

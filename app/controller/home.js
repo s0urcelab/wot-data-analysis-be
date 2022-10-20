@@ -1,9 +1,15 @@
 'use strict';
 
 const Controller = require('egg').Controller;
+const path = require('path')
+const fs = require('fs')
+const exec = require('util').promisify(require('child_process').exec)
 const dayjs = require('dayjs')
+const { nanoid } = require('nanoid')
 
 const hasKey = (params = {}, key) => params.hasOwnProperty(key)
+
+const WORK_DIR = '/usr/wot-data-analysis/badgesModifier'
 
 class HomeController extends Controller {
     async index() {
@@ -11,6 +17,84 @@ class HomeController extends Controller {
 
         ctx.body = '1.1'
         ctx.status = 200
+    }
+
+    // 下载battleAtlas徽章文件
+    async download() {
+        const { ctx } = this
+
+        const fileName = `battleAtlas.${ctx.request.query.t}`
+        const filePath = path.join(WORK_DIR, 'output', `${ctx.request.query.n}.${ctx.request.query.t}`)
+
+        ctx.attachment(fileName, {
+            fallback: true,
+            type: 'attachment', // [string] attachment/inline
+        })
+        // 文件大小
+        const fileSize = fs.statSync(filePath).size
+        ctx.set('Content-Length', fileSize)
+        ctx.set('Content-Disposition', `attachment; filename=${fileName}`)
+        ctx.body = fs.createReadStream(filePath)
+            .on('end', () => {
+                // 下载完成后删除文件
+                fs.unlinkSync(filePath)
+            })
+    }
+
+    // 上传battleAtlas处理
+    async upload() {
+        const { ctx } = this
+
+        let ddsTempPath = ''
+        let xmlTempPath = ''
+        const outputName = nanoid()
+
+        try {
+            // 遍历处理多个文件
+            for (const file of ctx.request.files) {
+                ctx.logger.info(`UPLOAD: ${file.fieldname} ${file.filename} ${file.filepath}`)
+
+                if (file.fieldname === 'dds') {
+                    ddsTempPath = file.filepath
+                }
+                if (file.fieldname === 'xml') {
+                    xmlTempPath = file.filepath
+                }
+            }
+
+            if (!ddsTempPath || !xmlTempPath) {
+                ctx.body = {
+                    errCode: 10001,
+                    data: '未上传指定文件',
+                }
+                return ctx.status = 200
+            }
+
+            const {
+                stderr,
+                stdout,
+                code,
+            } = await exec(`cd ${WORK_DIR} && (./modifier ${ddsTempPath} ${xmlTempPath} ${outputName})`)
+                .catch(e => e)
+
+            if (code || stderr) {
+                ctx.body = {
+                    errCode: 10003,
+                    data: stderr,
+                }
+                return ctx.status = 200
+            }
+
+            ctx.body = {
+                errCode: 0,
+                data: outputName,
+            }
+            ctx.status = 200
+
+        } finally {
+            // 需要删除临时文件
+            await ctx.cleanupRequestFiles();
+        }
     }
 
     // 当前采集状态
@@ -100,12 +184,12 @@ class HomeController extends Controller {
         // push api通知
         if (!authorType) {
             await ctx.curl(ctx.helper.pushMsg(
-                'wot.src.moe有新评论了',
-                `${author}：${content}`,
+                `${author}在wot.src.moe有新留言`,
+                content,
                 'https://wot.src.moe/message'
             ), { dataType: 'json' })
         }
-        
+
         ctx.body = {
             errCode: 0,
             data: '评论成功！',

@@ -35,6 +35,15 @@ module.exports = appInfo => {
     domainWhiteList: ['wot.src.moe'],
   };
 
+  config.multipart = {
+    mode: 'file',
+    // 单个文件大小
+    fileSize: '50mb',
+    // 允许上传的最大文件数
+    files: 3,
+    whitelist: [ '.dds', '.xml' ],
+  };
+
   return {
     ...config,
     ...userConfig,

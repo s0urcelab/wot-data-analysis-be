@@ -16,4 +16,7 @@ module.exports = app => {
 
   router.get('/commentList', controller.home.getComments);
   router.post('/addComment', controller.home.addComment);
+
+  router.post('/upload', controller.home.upload);
+  router.get('/download', controller.home.download);
 };

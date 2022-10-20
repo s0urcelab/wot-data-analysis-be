@@ -5,7 +5,7 @@
 module.exports = {
     // push msg templ
     pushMsg(title, content, url) {
-        return `http://xdroid.net/api/message?k=${process.env.PUSH_KEY}&t=${title}&c=${content}&u=${url}`
+        return `https://wework.src.moe/webhooks?u=me&t=${title}&c=${content}&l=${url}`
     },
     // 重试
     async retry(cb, count) {
