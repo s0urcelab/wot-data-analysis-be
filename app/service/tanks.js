@@ -55,8 +55,12 @@ class TankService extends Service {
     }
 
     // tankgg全车列表
-    async getTankggList(version) {
+    async getTankggList() {
         const { ctx } = this
+
+        const { data: { current: version } } = await ctx.curl('https://tanks.gg/api/versions', {
+            dataType: 'json',
+        })
 
         const { data: { tanks: tankList } } = await ctx.curl('https://tanks.gg/api/list', {
             dataType: 'json',
@@ -89,8 +93,12 @@ class TankService extends Service {
                 insert_date: NOW,
             }
         })
-
-        await this.ctx.model.Gg.insertMany(ggList, { ordered: false })
+        
+        try {
+            await this.ctx.model.Gg.insertMany(ggList, { ordered: false })
+        } catch (error) {
+            console.log('更新tanksgg部分数据')
+        }
     }
 
     async refreshList() {
@@ -124,7 +132,7 @@ class TankService extends Service {
             await ctx.model.Tanks.insertMany(mergeList, { ordered: false })
         } catch (error) {
             // ctx.logger.error(error)
-            console.log('更新部分列表')
+            console.log('更新主表部分数据')
         }
     }
 }

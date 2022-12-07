@@ -15,7 +15,7 @@ module.exports = {
             await cb()
         } catch (error) {
             console.error(error)
-            retry(cb, count - 1)
+            this.retry(cb, count - 1)
         }
     },
     // 挂起等待
@@ -42,17 +42,17 @@ module.exports = {
             return results
         }
 
-        let groupIdx = 1
-        while (groupIdx * sliceSize < tasks.length) {
-            const nowGroup = tasks.slice(groupIdx * (sliceSize - 1), groupIdx * sliceSize)
+        const max = Math.ceil(tasks.length / sliceSize)
+        for (let groupIdx = 1; groupIdx <= max; groupIdx++) {
+            const nowGroup = tasks.slice(sliceSize * (groupIdx - 1), groupIdx * sliceSize)
+
             await this.retry(async () => {
                 const res = await Promise.all(nowGroup.map(task => task()))
                 results.push(...res)
             }, retryCount)
             await this.sleep(sleepTime)
-
-            groupIdx++
         }
+
         return results
     },
 };

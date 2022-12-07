@@ -97,21 +97,6 @@ class HomeController extends Controller {
         }
     }
 
-    // 当前采集状态
-    async gatherStatus() {
-        const { ctx } = this;
-        const checkTime = dayjs()
-
-        const [{ lastUpdate }] = await ctx.model.Tanks.aggregate()
-            .group({ _id: null, lastUpdate: { '$max': '$update_date' } })
-
-        const isBefore12 = checkTime.isBefore(dayjs().set('h', 13), 'h')
-        const standardTime = isBefore12 ? dayjs().subtract(1, 'day') : dayjs()
-        const isGathered = dayjs(lastUpdate).isSame(standardTime, 'day')
-
-        ctx.status = isGathered ? 200 : 502
-    }
-
     // 获取评论列表
     async getComments() {
         const { ctx } = this;
@@ -202,9 +187,9 @@ class HomeController extends Controller {
         const { ctx } = this;
 
         // v11600
-        ctx.service.tanks.getTankggList(ctx.params.ver);
+        ctx.service.tanks.getTankggList();
 
-        ctx.body = `开始保存${ctx.params.ver}版本tanks.gg列表`
+        ctx.body = `开始保存当前tanks.gg列表`
         ctx.status = 200
     }
 
@@ -212,9 +197,9 @@ class HomeController extends Controller {
     async manualGather() {
         const { ctx, app } = this;
 
-        await app.runSchedule('update_mastery')
+        app.runSchedule('update_mastery')
 
-        ctx.body = '手动更新击杀环数据完成'
+        ctx.body = '开始手动更新击杀环数据'
         ctx.status = 200
     }
 
