@@ -23,7 +23,11 @@ const fetchMastery = async (ctx, lv) => {
         });
 
         if (res.data && res.data.errno === 0) {
-            const { ranking, modify } = res.data.data
+            // const { ranking, modify } = res.data.data
+            const NOW = dayjs().toDate()
+            const { ranking } = res.data.data
+            // 官方数据采集时间不更新，改为本机时间
+            const modify = NOW
             if (ranking.length === 0) {
                 stopped = true
             }
@@ -48,7 +52,6 @@ const fetchMastery = async (ctx, lv) => {
 
                 }
 
-                const NOW = dayjs().toDate()
                 const ggRes = await ctx.model.Gg.findById(item.tank_id).lean()
                 return ctx.model.Tanks.insertMany({
                     ...ggRes,
