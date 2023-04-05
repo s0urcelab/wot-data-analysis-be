@@ -27,7 +27,7 @@ const fetchMastery = async (ctx, lv) => {
             const NOW = dayjs().toDate()
             const { ranking } = res.data.data
             // 官方数据采集时间不更新，改为本机时间
-            const modify = NOW
+            const modify = dayjs().startOf('hour').toDate()
             if (ranking.length === 0) {
                 stopped = true
             }
