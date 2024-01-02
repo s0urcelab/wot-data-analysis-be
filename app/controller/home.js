@@ -6,10 +6,16 @@ const fs = require('fs')
 const exec = require('util').promisify(require('child_process').exec)
 const dayjs = require('dayjs')
 const { nanoid } = require('nanoid')
+const cheerio = require('cheerio')
 
 const hasKey = (params = {}, key) => params.hasOwnProperty(key)
 
 const WORK_DIR = '/usr/wot-data-analysis/badgesModifier'
+
+const MAP_ARR_TO_OBJ = (arr, params) => arr.reduce((acc, curr, idx) => {
+    acc[params[idx]] = curr
+    return acc
+}, {})
 
 class HomeController extends Controller {
     async index() {
@@ -207,10 +213,19 @@ class HomeController extends Controller {
     async preData() {
         const { ctx } = this;
 
+        const rule = {
+            pid: 'int?',
+            pn: 'string?',
+        }
+        // 校验参数
+        ctx.validate(rule, ctx.query)
+        // 组装参数
+        const { pid, pn } = ctx.query
+
         const [{ lastUpdate }] = await ctx.model.Tanks.aggregate()
             .group({ _id: null, lastUpdate: { '$max': '$update_date' } })
-        const hasMastery = await ctx.model.Tanks.countDocuments({ mastery_95: { $exists: true } })
-        const total = await ctx.model.Tanks.countDocuments({ tier: { $gte: 5 } })
+        // const hasMastery = await ctx.model.Tanks.countDocuments({ mastery_95: { $exists: true } })
+        // const total = await ctx.model.Tanks.countDocuments({ tier: { $gte: 5 } })
 
         const nationGroup = await ctx.model.Tanks.aggregate()
             .group({ _id: '$nation' })
@@ -219,16 +234,87 @@ class HomeController extends Controller {
         const types = ['lightTank', 'mediumTank', 'heavyTank', 'AT-SPG', 'SPG']
         const tiers = Array.from({ length: 10 }).map((_, idx) => idx + 1)
 
+        let player = null
+        if (pid && pn) {
+            const { data: { data: { battles_count, wins_ratio, global_rating } } } = await ctx.curl(`https://wotgame.cn/wotup/profile/summary/?spa_id=${pid}&battle_type=random`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                dataType: 'json',
+            })
+
+            const { data: wotboxHtml } = await ctx.curl(`https://wotbox.ouj.com/wotbox/index.php?r=default%2Findex&pn=${pn}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                dataType: 'text',
+            })
+            const $ = cheerio.load(wotboxHtml)
+
+            player = {
+                battTotal: battles_count,
+                winRate: wins_ratio,
+                wgr: global_rating,
+                eff: +$('.power .num').text(),
+                effDelta: +$('.power .float-num').text(),
+            }
+        }
+
         ctx.body = {
             errCode: 0,
             data: {
                 nations: nationGroup.map(v => v._id),
                 types,
                 tiers,
-                total,
-                hasMastery,
                 lastUpdate,
+                player,
             },
+        }
+        ctx.status = 200
+    }
+
+    // 绑定玩家昵称
+    async bindUser() {
+        const { ctx } = this;
+
+        const rule = {
+            nickname: 'string',
+        }
+        // 校验参数
+        ctx.validate(rule, ctx.request.body)
+
+        const {
+            nickname,
+        } = ctx.request.body
+
+        if (nickname.length < 4) {
+            ctx.body = {
+                errCode: 20001,
+                msg: '玩家昵称至少4个字符',
+            }
+            ctx.status = 200
+            return
+        }
+
+        const { data: { response: matchList } } = await ctx.curl(`https://wotgame.cn/zh-cn/community/accounts/search/?name=${nickname}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            dataType: 'json',
+        })
+
+        if (!matchList.length) {
+            ctx.body = {
+                errCode: 20002,
+                msg: '没有找到您搜索的玩家',
+            }
+            ctx.status = 200
+            return
+        }
+
+        ctx.body = {
+            errCode: 0,
+            data: matchList[0].account_id,
         }
         ctx.status = 200
     }
@@ -247,12 +333,51 @@ class HomeController extends Controller {
             size: 'int?',
             sort: 'string?',
             order: 'string?',
+            player_id: 'int?',
         }
         // 校验参数
         ctx.validate(rule, ctx.query)
         // 组装参数
         const { page = 1, size = 40 } = ctx.query
+
+        let playerVehiList = []
+        if (hasKey(ctx.query, 'player_id')) {
+            const { data: { data: { data, parameters } } } = await ctx.curl(`https://wotgame.cn/wotup/profile/vehicles/list/`, {
+                method: 'POST',
+                contentType: 'json',
+                data: {
+                    "battle_type": "random",
+                    "only_in_garage": false,
+                    "spa_id": +ctx.query.player_id,
+                    "premium": [0, 1],
+                    "collector_vehicle": [0, 1],
+                    "nation": [],
+                    "role": [],
+                    "type": [],
+                    "tier": [],
+                    "language": "zh-cn",
+                },
+                dataType: 'json',
+            })
+            playerVehiList = data.map(item => MAP_ARR_TO_OBJ(item, parameters))
+        }
+        const addPlayerInfo = v => {
+            if (!playerVehiList.length) {
+                return v
+            }
+            const matchItem = playerVehiList.find(i => v._id === i.vehicle_cd)
+
+            return {
+                ...v,
+                pl: {
+                    mastery: matchItem.markOfMastery,
+                    moe: matchItem.marksOnGun,
+                }
+            }
+        }
+
         const query = {
+            ...playerVehiList.length && { _id: { $in: playerVehiList.map(v => v.vehicle_cd) } },
             ...hasKey(ctx.query, 'nation') && { nation: ctx.query.nation },
             ...hasKey(ctx.query, 'type') && { type: ctx.query.type },
             ...hasKey(ctx.query, 'tier') && { tier: ctx.query.tier },
@@ -270,12 +395,13 @@ class HomeController extends Controller {
             .sort(sort)
             .skip(skip)
             .limit(size)
+            .lean()
 
         // 设置响应内容和响应状态码
         ctx.body = {
             errCode: 0,
             data: {
-                list,
+                list: list.map(addPlayerInfo),
                 total,
             },
         }

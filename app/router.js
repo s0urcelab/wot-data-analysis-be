@@ -18,4 +18,6 @@ module.exports = app => {
 
   router.post('/upload', controller.home.upload);
   router.get('/download', controller.home.download);
+
+  router.post('/bindUser', controller.home.bindUser);
 };
