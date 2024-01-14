@@ -54,6 +54,29 @@ class TankService extends Service {
         console.error('拉取官方数据失败！')
     }
 
+    // 检查缺失车辆数据
+    async checkFixVehicle() {
+        const { ctx } = this
+
+        const query = {
+            $or: [
+                { nation: { $exists: false } },
+                { type: { $exists: false } },
+                { tier: { $exists: false } }
+            ]
+        }
+        const brokenVehiList = await ctx.model.Tanks.find(query)
+        for (const item of brokenVehiList) {
+            const ggRes = await ctx.model.Gg
+                .findById(item._id)
+                .select('-__v -insert_date -update_date')
+                .lean()
+            if (ggRes) {
+                await ctx.model.Tanks.findOneAndUpdate({ _id: item._id }, { $set: { ...ggRes, name: item.name } })
+            }
+        }
+    }
+
     // tankgg全车列表
     async getTankggList() {
         const { ctx } = this

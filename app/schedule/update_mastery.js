@@ -52,7 +52,7 @@ const fetchMastery = async (ctx, lv) => {
 
                 }
 
-                const ggRes = await ctx.model.Gg.findById(item.tank_id).lean()
+                const ggRes = await ctx.model.Gg.findById(item.tank_id).select('-__v').lean()
                 return ctx.model.Tanks.insertMany({
                     ...ggRes,
                     _id: item.tank_id,
@@ -97,6 +97,8 @@ module.exports = {
         await fetchMastery(ctx, 65)
         await fetchMastery(ctx, 85)
         await fetchMastery(ctx, 95)
-        // await Promise.all([65, 85, 95].map(lv => fetchMastery(ctx, lv)))
+        
+        await ctx.service.tanks.getTankggList()
+        await ctx.service.tanks.checkFixVehicle()
     },
 };

@@ -188,17 +188,6 @@ class HomeController extends Controller {
         ctx.status = 200
     }
 
-    // 保存tanks.gg坦克列表
-    async storeTanksgg() {
-        const { ctx } = this;
-
-        // v11600
-        ctx.service.tanks.getTankggList();
-
-        ctx.body = `开始保存当前tanks.gg列表`
-        ctx.status = 200
-    }
-
     // 手动触发采集
     async manualGather() {
         const { ctx, app } = this;
