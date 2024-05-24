@@ -225,7 +225,7 @@ class HomeController extends Controller {
 
         let player = null
         if (pid && pn) {
-            const { data: { data: { battles_count, wins_ratio, global_rating } } } = await ctx.curl(`https://wotgame.cn/wotup/profile/summary/?spa_id=${pid}&battle_type=random`, {
+            const { data: { data: { battles_count, wins_ratio, global_rating } } } = await ctx.curl(`https://wotgame.cn/wotup/profile/summary/?spa_id=${pid}&battle_type=random&wtr_disabled=1`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                 },
