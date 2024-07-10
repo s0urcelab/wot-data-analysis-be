@@ -319,7 +319,7 @@ class HomeController extends Controller {
             premium: 'int?',
             collector_vehicle: 'int?',
             page: 'int?',
-            size: { type: 'enum', values: [20, 40, 100], required: false },
+            size: 'int?',
             sort: 'string?',
             order: 'string?',
             player_id: 'int?',
@@ -328,6 +328,12 @@ class HomeController extends Controller {
         ctx.validate(rule, ctx.query)
         // 组装参数
         const { page = 1, size = 20 } = ctx.query
+
+        // 防止脚本小子狂刷
+        if (![20, 40, 100].includes(size)) {
+            ctx.status = 500
+            return
+        }
 
         let playerVehiList = []
         if (hasKey(ctx.query, 'player_id')) {
