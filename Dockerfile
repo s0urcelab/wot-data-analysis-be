@@ -1,5 +1,5 @@
 # 设置基础镜像,如果本地没有该镜像，会从Docker.io服务器pull镜像
-FROM node:14.17.6-alpine
+FROM node:16.20.0-alpine
 
 # 设置时区
 RUN apk --update add tzdata \
