@@ -81,46 +81,60 @@ class TankService extends Service {
     async getTankggList() {
         const { ctx } = this
 
-        const { data: { current: version } } = await ctx.curl('https://tanks.gg/api/versions', {
-            dataType: 'json',
-        })
-
-        const { data: { tanks: tankList } } = await ctx.curl('https://tanks.gg/api/list', {
-            dataType: 'json',
-        })
-
-        const fetchTasks = tankList
-            .map(({ slug }) => () => ctx.curl(`https://tanks.gg/api/${version}/tank/${slug}`, {
-                dataType: 'json',
-            }))
-
-        const resList = await ctx.helper.sliceTaskAndRun(fetchTasks, {
-            sliceSize: 20,
-            sleepTime: 3000,
-        })
-
-        const NOW = dayjs().toDate()
-        const ggList = resList.map(item => {
-            const v = item.data.tank
-            return {
-                _id: v.tank_id,
-                nation: v.nation,
-                type: v.tags[0].name,
-                role: v.tags[1].name,
-                tier: v.tier,
-                name: v.name,
-                en_name: v.name,
-                short_name: v.short_name,
-                en_short_name: v.short_name,
-                tech_name: v.id,
-                insert_date: NOW,
-            }
-        })
-        
+        // {
+        // 	"wg_versions": [],
+        // 	"ru_versions": [],
+        // 	"current_wg": "v12510",
+        // 	"current_ru": "v12700ru"
+        // }
         try {
+            const { data: { current_wg: version } } = await ctx.curl('https://tanks.gg/api/versions', {
+                dataType: 'json',
+            })
+    
+            const { data: { tanks: tankList } } = await ctx.curl('https://tanks.gg/api/list', {
+                dataType: 'json',
+            })
+    
+            const fetchTasks = tankList
+                .map(({ slug }) => () => ctx.curl(`https://tanks.gg/api/${version}/tank/${slug}`, {
+                    dataType: 'json',
+                }))
+    
+            const resList = await ctx.helper.sliceTaskAndRun(fetchTasks, {
+                sliceSize: 20,
+                sleepTime: 3000,
+            })
+    
+            const NOW = dayjs().toDate()
+            const GG_TYPE = {
+                light: 'lightTank',
+                medium: 'mediumTank',
+                heavy: 'heavyTank',
+                td: 'AT-SPG',
+                spg: 'SPG',
+            }
+            const ggList = resList.map(item => {
+                const v = item.data.tank
+                return {
+                    _id: v.tank_id,
+                    nation: v.nation,
+                    type: GG_TYPE[v.type] || 'unknown',
+                    role: v.vehicle_role,
+                    tier: v.tier,
+                    name: v.name,
+                    en_name: v.name,
+                    short_name: v.short_name,
+                    en_short_name: v.short_name,
+                    tech_name: v.id,
+                    insert_date: NOW,
+                }
+            })
+
             await this.ctx.model.Gg.insertMany(ggList, { ordered: false })
         } catch (error) {
-            console.log('更新tanksgg部分数据')
+            console.log('更新tanks.gg数据')
+            console.log(error)
         }
     }
 
