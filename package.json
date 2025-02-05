@@ -7,7 +7,7 @@
     "declarations": true
   },
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12",
+    "cheerio": "1.0.0-rc.12",
     "dayjs": "^1.11.0",
     "egg": "^2.15.1",
     "egg-mongoose": "^3.3.1",

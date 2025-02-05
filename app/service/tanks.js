@@ -25,6 +25,7 @@ class TankService extends Service {
 
         // 亚服全车列表
         const asia = ctx.curl('https://worldoftanks.asia/wotpbe/tankopedia/api/vehicles/by_filters/', {
+            method: 'POST',
             data: {
                 'filter[premium]': '0,1',
                 'filter[language]': 'en',
@@ -34,6 +35,7 @@ class TankService extends Service {
 
         // 国服全车列表
         const cn = ctx.curl('https://wotgame.cn/wotpbe/tankopedia/api/vehicles/by_filters/', {
+            method: 'POST',
             data: {
                 'filter[premium]': '0,1',
                 'filter[language]': 'zh-cn',

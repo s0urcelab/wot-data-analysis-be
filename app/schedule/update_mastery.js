@@ -8,6 +8,7 @@ const fetchMastery = async (ctx, lv) => {
     // infinite loop
     while (!stopped) {
         const res = await ctx.curl('https://tbox.wot.360.cn/rank/more', {
+            method: 'POST',
             data: {
                 'percentile': lv,
                 'rank_type': 'default',
