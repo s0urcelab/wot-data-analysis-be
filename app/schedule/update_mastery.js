@@ -13,7 +13,7 @@ const fetchMastery = async (ctx, lv) => {
                 'percentile': lv,
                 'rank_type': 'default',
                 // 'type': '',
-                'tier': '5,6,7,8,9,10',
+                'tier': '5,6,7,8,9,10,11',
                 'sort': 'mastery',
                 // 'tank_sort': '',
                 // 'nation': '',
