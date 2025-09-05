@@ -221,7 +221,7 @@ class HomeController extends Controller {
             .sort('_id')
 
         const types = ['lightTank', 'mediumTank', 'heavyTank', 'AT-SPG', 'SPG']
-        const tiers = Array.from({ length: 10 }).map((_, idx) => idx + 1)
+        const tiers = Array.from({ length: 11 }).map((_, idx) => idx + 1)
 
         let player = null
         if (pid && pn) {
