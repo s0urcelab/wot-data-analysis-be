@@ -3,10 +3,12 @@
 const Controller = require('egg').Controller;
 const path = require('path')
 const fs = require('fs')
-const exec = require('util').promisify(require('child_process').exec)
 const dayjs = require('dayjs')
 const { nanoid } = require('nanoid')
 const cheerio = require('cheerio')
+
+// 不再通过子进程执行 modifier，直接引入并调用其导出方法
+const { main: runModifier } = require('/usr/wot-data-analysis/badgesModifier/modifier')
 
 const hasKey = (params = {}, key) => params.hasOwnProperty(key)
 
@@ -76,17 +78,15 @@ class HomeController extends Controller {
                 return ctx.status = 200
             }
 
-            const {
-                stderr,
-                stdout,
-                code,
-            } = await exec(`cd ${WORK_DIR} && (./modifier ${ddsTempPath} ${xmlTempPath} ${outputName})`)
-                .catch(e => e)
-
-            if (code || stderr) {
+            try {
+                // 传入绝对路径，避免工作目录差异
+                const absDds = path.isAbsolute(ddsTempPath) ? ddsTempPath : path.resolve(ddsTempPath)
+                const absXml = path.isAbsolute(xmlTempPath) ? xmlTempPath : path.resolve(xmlTempPath)
+                await runModifier(absDds, absXml, outputName)
+            } catch (err) {
                 ctx.body = {
                     errCode: 10003,
-                    data: stderr,
+                    data: String(err && err.stack || err),
                 }
                 return ctx.status = 200
             }

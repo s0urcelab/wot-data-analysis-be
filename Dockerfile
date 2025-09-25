@@ -1,5 +1,5 @@
 # 设置基础镜像,如果本地没有该镜像，会从Docker.io服务器pull镜像
-FROM node:16.20.0-alpine
+FROM node:18.17.0-alpine
 
 # 设置时区
 RUN apk --update add tzdata \
@@ -27,7 +27,7 @@ RUN npm i --registry=https://registry.npmmirror.com
 # 拷贝所有源代码到工作目录
 COPY . /usr/wot-data-analysis
 
-RUN chmod 755 /usr/wot-data-analysis/badgesModifier/modifier
+# RUN chmod 755 /usr/wot-data-analysis/badgesModifier/modifier
 
 # 暴露容器端口
 EXPOSE 7001
