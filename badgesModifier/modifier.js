@@ -19,18 +19,6 @@ const sharp = require('sharp')
 const readFile = promisify(fs.readFile)
 const writeFile = promisify(fs.writeFile)
 
-/**
- * @typedef {Object} BadgeColors
- * @property {string|[number,number,number,number]} badge_10
- * @property {string|[number,number,number,number]} badge_11
- * @property {string|[number,number,number,number]} badge_12
- * @property {string|[number,number,number,number]} badge_13
- * @property {string|[number,number,number,number]} badge_14
- * @property {string|[number,number,number,number]} badge_15
- * @property {string|[number,number,number,number]} badge_16
- */
-
-
 const OUTPUT_PATH = path.join(__dirname, 'output')
 const ICON_BASE_PATH = path.join(__dirname, 'assets')
 
@@ -45,6 +33,7 @@ const colors = {
     badge_14: [204, 68, 255, 255],
     badge_15: [255, 215, 0, 255],
     badge_16: 'crown.png',
+    badge_17: 'question.png',
 }
 
 /**
@@ -194,7 +183,7 @@ async function pasteIcon(inputPng, rect, iconFile) {
  * @param {string} srcXml 贴图 XML
  * @param {string} outputName 输出名（不带扩展名）
  */
-async function main(srcImg, srcXml, outputName) {
+async function iconModifier(srcImg, srcXml, outputName) {
     await fs.promises.mkdir(OUTPUT_PATH, { recursive: true })
     const tgImg = path.join(OUTPUT_PATH, `${outputName}.png`)
     const tgXml = path.join(OUTPUT_PATH, `${outputName}.xml`)
@@ -226,5 +215,5 @@ async function main(srcImg, srcXml, outputName) {
     await fs.promises.rename(tgImg, rnImg)
 }
 
-module.exports = { main }
+module.exports = { iconModifier }
 
