@@ -3,17 +3,15 @@
 const Controller = require('egg').Controller;
 const path = require('path')
 const fs = require('fs')
+const { spawn } = require('child_process')
 const dayjs = require('dayjs')
 const { nanoid } = require('nanoid')
 const cheerio = require('cheerio')
+const modifier = require('badges-modifier')
 
-// 不再通过子进程执行 modifier，直接引入并调用其导出方法
-const { iconModifier } = require('/usr/wot-data-analysis/badgesModifier/modifier')
+const BA_WORK_DIR = '/wds/badgesModifier'
 
 const hasKey = (params = {}, key) => params.hasOwnProperty(key)
-
-const WORK_DIR = '/usr/wot-data-analysis/badgesModifier'
-
 const MAP_ARR_TO_OBJ = (arr, params) => arr.reduce((acc, curr, idx) => {
     acc[params[idx]] = curr
     return acc
@@ -32,7 +30,7 @@ class HomeController extends Controller {
         const { ctx } = this
 
         const fileName = `battleAtlas.${ctx.request.query.t}`
-        const filePath = path.join(WORK_DIR, 'output', `${ctx.request.query.n}.${ctx.request.query.t}`)
+        const filePath = path.join(BA_WORK_DIR, 'output', `${ctx.request.query.n}.${ctx.request.query.t}`)
 
         ctx.attachment(fileName, {
             fallback: true,
@@ -82,7 +80,30 @@ class HomeController extends Controller {
                 // 传入绝对路径，避免工作目录差异
                 const absDds = path.isAbsolute(ddsTempPath) ? ddsTempPath : path.resolve(ddsTempPath)
                 const absXml = path.isAbsolute(xmlTempPath) ? xmlTempPath : path.resolve(xmlTempPath)
-                await iconModifier(absDds, absXml, outputName)
+
+                // 先将 DDS 转为 PNG，再把生成的 PNG 传给 modifier
+                const pngName = path.basename(absDds, path.extname(absDds)) + '.png'
+                const absPng = path.join(BA_WORK_DIR, pngName)
+
+                // 使用子进程运行 dds2png
+                await new Promise((resolve, reject) => {
+                    const proc = spawn('dds2png', ['-i', absDds, '-o', absPng], { cwd: BA_WORK_DIR })
+                    let stdout = ''
+                    let stderr = ''
+                    proc.stdout && proc.stdout.on('data', d => { stdout += d.toString() })
+                    proc.stderr && proc.stderr.on('data', d => { stderr += d.toString() })
+                    proc.on('error', err => reject(err))
+                    proc.on('close', code => {
+                        if (code === 0) {
+                            console.log(`dds转换png成功：${absPng}`)
+                            return resolve({ stdout, stderr })
+                        }
+                        return reject(new Error(`dds2png exited with code ${code}: ${stderr || stdout}`))
+                    })
+                })
+
+                // 把生成的 png 传入 modifier
+                await modifier(absPng, absXml, outputName)
             } catch (err) {
                 ctx.body = {
                     errCode: 10003,
