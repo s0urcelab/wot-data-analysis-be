@@ -3,7 +3,6 @@
 const Controller = require('egg').Controller;
 const path = require('path')
 const fs = require('fs')
-const { spawn } = require('child_process')
 const dayjs = require('dayjs')
 const { nanoid } = require('nanoid')
 const cheerio = require('cheerio')
@@ -80,30 +79,7 @@ class HomeController extends Controller {
                 // 传入绝对路径，避免工作目录差异
                 const absDds = path.isAbsolute(ddsTempPath) ? ddsTempPath : path.resolve(ddsTempPath)
                 const absXml = path.isAbsolute(xmlTempPath) ? xmlTempPath : path.resolve(xmlTempPath)
-
-                // 先将 DDS 转为 PNG，再把生成的 PNG 传给 modifier
-                const pngName = path.basename(absDds, path.extname(absDds)) + '.png'
-                const absPng = path.join(BA_WORK_DIR, pngName)
-
-                // 使用子进程运行 dds2png
-                await new Promise((resolve, reject) => {
-                    const proc = spawn('dds2png', ['-i', absDds, '-o', absPng], { cwd: BA_WORK_DIR })
-                    let stdout = ''
-                    let stderr = ''
-                    proc.stdout && proc.stdout.on('data', d => { stdout += d.toString() })
-                    proc.stderr && proc.stderr.on('data', d => { stderr += d.toString() })
-                    proc.on('error', err => reject(err))
-                    proc.on('close', code => {
-                        if (code === 0) {
-                            console.log(`dds转换png成功：${absPng}`)
-                            return resolve({ stdout, stderr })
-                        }
-                        return reject(new Error(`dds2png exited with code ${code}: ${stderr || stdout}`))
-                    })
-                })
-
-                // 把生成的 png 传入 modifier
-                await modifier(absPng, absXml, outputName)
+                await modifier(absDds, absXml, outputName)
             } catch (err) {
                 ctx.body = {
                     errCode: 10003,

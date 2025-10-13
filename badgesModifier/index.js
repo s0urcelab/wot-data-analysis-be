@@ -15,7 +15,7 @@ const path = require('path')
 const { promisify } = require('util')
 const xml2js = require('xml2js')
 const sharp = require('sharp')
-
+const { spawn } = require('child_process')
 const readFile = promisify(fs.readFile)
 const writeFile = promisify(fs.writeFile)
 
@@ -58,48 +58,48 @@ async function parseCoordinates(xmlPath) {
      * @param {Array<any>} acc
      */
     function collectSubTextures(node, acc) {
-      if (!node) return
-      if (Array.isArray(node)) {
-        for (const item of node) collectSubTextures(item, acc)
-        return
-      }
-      if (typeof node === 'object') {
-        const hasAttr = node.$ && (node.$.name != null) && (node.$.x != null) && (node.$.y != null) && (node.$.width != null) && (node.$.height != null)
-        const hasChild = (node.name != null) && (node.x != null) && (node.y != null) && (node.width != null) && (node.height != null)
-        if (hasAttr || hasChild) acc.push(node)
-        for (const key of Object.keys(node)) {
-          collectSubTextures(node[key], acc)
+        if (!node) return
+        if (Array.isArray(node)) {
+            for (const item of node) collectSubTextures(item, acc)
+            return
         }
-      }
+        if (typeof node === 'object') {
+            const hasAttr = node.$ && (node.$.name != null) && (node.$.x != null) && (node.$.y != null) && (node.$.width != null) && (node.$.height != null)
+            const hasChild = (node.name != null) && (node.x != null) && (node.y != null) && (node.width != null) && (node.height != null)
+            if (hasAttr || hasChild) acc.push(node)
+            for (const key of Object.keys(node)) {
+                collectSubTextures(node[key], acc)
+            }
+        }
     }
 
     // 若标准位置没有取到，则回退到全树扫描
     let nodes = []
     if (Array.isArray(sub) && sub.length > 0) {
-      nodes = sub
+        nodes = sub
     } else {
-      collectSubTextures(parsed, nodes)
+        collectSubTextures(parsed, nodes)
     }
 
     function textOf(v) {
-      if (v == null) return ''
-      if (Array.isArray(v)) return textOf(v[0])
-      if (typeof v === 'object' && v._ != null) return String(v._).trim()
-      return String(v).trim()
+        if (v == null) return ''
+        if (Array.isArray(v)) return textOf(v[0])
+        if (typeof v === 'object' && v._ != null) return String(v._).trim()
+        return String(v).trim()
     }
 
     const list = nodes
-      .filter((node) => node)
-      .map((node) => {
-        const src = node.$ ? node.$ : node
-        return {
-          name: textOf(src.name),
-          x: Number(textOf(src.x)),
-          y: Number(textOf(src.y)),
-          width: Number(textOf(src.width)),
-          height: Number(textOf(src.height)),
-        }
-      })
+        .filter((node) => node)
+        .map((node) => {
+            const src = node.$ ? node.$ : node
+            return {
+                name: textOf(src.name),
+                x: Number(textOf(src.x)),
+                y: Number(textOf(src.y)),
+                width: Number(textOf(src.width)),
+                height: Number(textOf(src.height)),
+            }
+        })
 
     return list.filter((it) => Object.prototype.hasOwnProperty.call(colors, it.name))
 }
@@ -178,7 +178,7 @@ async function pasteIcon(inputPng, rect, iconFile) {
 }
 
 /**
- * 主流程
+ * 图标编辑
  * @param {string} srcImg 源 PNG
  * @param {string} srcXml 贴图 XML
  * @param {string} outputName 输出名（不带扩展名）
@@ -215,6 +215,61 @@ async function iconModifier(srcImg, srcXml, outputName) {
     await fs.promises.rename(tgImg, rnImg)
 }
 
-module.exports = iconModifier
+// 检测图片资源类型
+async function detectFileType(path) {
+    const fd = await fs.promises.open(path, 'r');
+    try {
+        // 读前 8 个字节（PNG 需要 8 个，DDS 4 个）
+        const { buffer } = await fd.read(Buffer.alloc(8), 0, 8, 0);
+        // PNG signature
+        const pngSig = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        // DDS signature ("DDS ")
+        const ddsSig = Buffer.from([0x44, 0x44, 0x53, 0x20]);
+
+        if (buffer.slice(0, 8).equals(pngSig)) return 'png';
+        if (buffer.slice(0, 4).equals(ddsSig)) return 'dds';
+        return 'unknown';
+    } finally {
+        await fd.close();
+    }
+}
+
+// 主流程
+async function main(srcImg, srcXml, outputName) {
+    const imgType = await detectFileType(srcImg)
+    if (imgType === 'unknown') {
+        throw new Error(`无法识别dds文件`)
+    }
+    if (imgType === 'png') {
+        // 直接传给 modifier
+        await iconModifier(srcImg, srcXml, outputName)
+        return
+    }
+    if (imgType === 'dds') {
+        // 先将 DDS 转为 PNG
+        const absPng = srcImg.replace(/\.dds$/i, '.png')
+
+        // 使用子进程运行 dds2png
+        await new Promise((resolve, reject) => {
+            const proc = spawn('dds2png', ['-i', srcImg, '-o', absPng])
+            let stdout = ''
+            let stderr = ''
+            proc.stdout && proc.stdout.on('data', d => { stdout += d.toString() })
+            proc.stderr && proc.stderr.on('data', d => { stderr += d.toString() })
+            proc.on('error', err => reject(err))
+            proc.on('close', code => {
+                if (code === 0) {
+                    console.log(`dds转换png成功：${absPng}`)
+                    return resolve({ stdout, stderr })
+                }
+                return reject(new Error(`dds2png exited with code ${code}: ${stderr || stdout}`))
+            })
+        })
+        await iconModifier(absPng, srcXml, outputName)
+        return
+    }
+}
+
+module.exports = main
 
 
