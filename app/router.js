@@ -19,4 +19,6 @@ module.exports = app => {
   router.get('/download', controller.home.download);
 
   router.post('/bindUser', controller.home.bindUser);
+  
+  router.get('/modVersion', controller.home.modVersion);
 };

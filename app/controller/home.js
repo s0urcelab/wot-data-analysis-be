@@ -430,6 +430,27 @@ class HomeController extends Controller {
         }
         ctx.status = 200
     }
+
+    // 插件版本号管理
+    async modVersion() {
+        const { ctx } = this;
+        const { data: html } = await ctx.curl(`http://host.docker.internal:7003/wot/`, {
+            method: 'GET',
+            dataType: 'text',
+        })
+        const re = /<script>\s*DATA\s*=\s*({[\s\S]*?})\s*<\/script>/;
+
+        const match = html.match(re);
+        const data = JSON.parse(match[1]);
+        const vers = data.paths.filter((v) => v.path_type === 'Dir');
+        const latest = Math.max(...vers.map((v) => v.mtime));
+        const latestVersion = vers.find((v) => v.mtime === latest).name;
+        ctx.body = {
+            errCode: 0,
+            data: latestVersion,
+        }
+        ctx.status = 200
+    }
 }
 
 module.exports = HomeController;
