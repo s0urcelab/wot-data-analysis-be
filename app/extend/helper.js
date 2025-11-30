@@ -55,4 +55,51 @@ module.exports = {
 
         return results
     },
+    /**
+     * 辅助函数：比较两个版本号（复用上一题的双指针逻辑，复杂度 O(L)）
+     */
+    compareVersion(v1, v2) {
+        let i = 0, j = 0;
+        const n = v1.length, m = v2.length;
+
+        while (i < n || j < m) {
+            let num1 = 0, num2 = 0;
+
+            while (i < n && v1[i] !== '.') {
+                num1 = num1 * 10 + (v1.charCodeAt(i) - 48);
+                i++;
+            }
+            while (j < m && v2[j] !== '.') {
+                num2 = num2 * 10 + (v2.charCodeAt(j) - 48);
+                j++;
+            }
+
+            if (num1 > num2) return 1;
+            if (num1 < num2) return -1;
+
+            i++; j++;
+        }
+        return 0;
+    },
+
+    /**
+     * 主函数：找出最大版本号
+     * 时间复杂度：O(K * L) - K是数组长度，L是字符串长度
+     */
+    findMaxVersion(versions) {
+        if (!versions || versions.length === 0) return null;
+
+        // 假设第一个是最大的
+        let maxVer = versions[0];
+
+        // 从第二个开始遍历
+        for (let i = 1; i < versions.length; i++) {
+            // 如果当前版本比 maxVer 大，则更新 maxVer
+            if (this.compareVersion(versions[i], maxVer) > 0) {
+                maxVer = versions[i];
+            }
+        }
+
+        return maxVer;
+    },
 };

@@ -434,6 +434,7 @@ class HomeController extends Controller {
     // 插件版本号管理
     async modVersion() {
         const { ctx } = this;
+        // const { data: html } = await ctx.curl(`https://dl.src.moe:8000/wot/`, {
         const { data: html } = await ctx.curl(`http://host.docker.internal:7003/wot/`, {
             method: 'GET',
             dataType: 'text',
@@ -442,9 +443,10 @@ class HomeController extends Controller {
 
         const match = html.match(re);
         const data = JSON.parse(match[1]);
-        const vers = data.paths.filter((v) => v.path_type === 'Dir');
-        const latest = Math.max(...vers.map((v) => v.mtime));
-        const latestVersion = vers.find((v) => v.mtime === latest).name;
+        const vers = data.paths.filter((v) => v.path_type === 'Dir').map(v => v.name);
+        const latestVersion = ctx.helper.findMaxVersion(vers)
+        // const latest = Math.max(...vers.map((v) => v.mtime));
+        // const latestVersion = vers.find((v) => v.mtime === latest).name;
         ctx.body = {
             errCode: 0,
             data: latestVersion,
