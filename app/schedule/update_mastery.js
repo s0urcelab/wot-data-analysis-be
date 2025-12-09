@@ -98,8 +98,5 @@ module.exports = {
         await fetchMastery(ctx, 65)
         await fetchMastery(ctx, 85)
         await fetchMastery(ctx, 95)
-        
-        await ctx.service.tanks.getTankggList()
-        await ctx.service.tanks.checkFixVehicle()
     },
 };

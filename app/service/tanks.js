@@ -1,6 +1,9 @@
 const Service = require('egg').Service;
 const dayjs = require('dayjs')
 
+// const TANKS_GG_API_PREFIX = 'https://tanks.gg/api'
+const TANKS_GG_API_PREFIX = 'https://tankgg.src.moe/api'
+
 // 解析官方数据
 const parseOfficialData = ({ parameters, data }) => {
     return data.reduce((ac, item) => {
@@ -90,16 +93,16 @@ class TankService extends Service {
         // 	"current_ru": "v12700ru"
         // }
         try {
-            const { data: { current_wg: version } } = await ctx.curl('https://tanks.gg/api/versions', {
+            const { data: { current_wg: version } } = await ctx.curl(`${TANKS_GG_API_PREFIX}/versions`, {
                 dataType: 'json',
             })
     
-            const { data: { tanks: tankList } } = await ctx.curl('https://tanks.gg/api/list', {
+            const { data: { tanks: tankList } } = await ctx.curl(`${TANKS_GG_API_PREFIX}/list`, {
                 dataType: 'json',
             })
     
             const fetchTasks = tankList
-                .map(({ slug }) => () => ctx.curl(`https://tanks.gg/api/${version}/tank/${slug}`, {
+                .map(({ slug }) => () => ctx.curl(`${TANKS_GG_API_PREFIX}/${version}/tank/${slug}`, {
                     dataType: 'json',
                 }))
     
