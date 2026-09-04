@@ -435,14 +435,10 @@ class HomeController extends Controller {
     async modVersion() {
         const { ctx } = this;
         // const { data: html } = await ctx.curl(`https://dl.src.moe:8000/wot/`, {
-        const { data: html } = await ctx.curl(`http://host.docker.internal:7003/wot/`, {
+        const { data } = await ctx.curl(`http://host.docker.internal:7003/wot/?json`, {
             method: 'GET',
-            dataType: 'text',
+            dataType: 'json',
         })
-        const re = /<script>\s*DATA\s*=\s*({[\s\S]*?})\s*<\/script>/;
-
-        const match = html.match(re);
-        const data = JSON.parse(match[1]);
         const vers = data.paths.filter((v) => v.path_type === 'Dir').map(v => v.name);
         const latestVersion = ctx.helper.findMaxVersion(vers)
         // const latest = Math.max(...vers.map((v) => v.mtime));
