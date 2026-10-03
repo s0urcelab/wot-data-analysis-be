@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 from flask import Flask, jsonify, request
 
 from collectors import execute_collection, refresh_catalog
+from compat import register_compat_routes
 from db import connect, get_db, init_app
 
 LOGGER = logging.getLogger(__name__)
@@ -101,7 +102,10 @@ def _player_vehicles(player_id: int) -> Dict[int, dict]:
     )
     response.raise_for_status()
     payload = response.json()
-    container = (payload.get("data") or {}).get("data") or {}
+    container = payload.get("data") or {}
+    # Accept both official parameter/data rows and an extra upstream envelope.
+    if isinstance(container.get("data"), dict):
+        container = container["data"]
     parameters = container.get("parameters") or []
     result = {}
     for row in container.get("data") or []:
@@ -360,6 +364,8 @@ def create_app(config: Optional[dict] = None) -> Flask:
             LOGGER.warning("Plugin version lookup failed: %s", error)
             return _error("version_service_unavailable", "Plugin version service is unavailable", 502)
 
+    register_compat_routes(app)
+
     if app.config["ENABLE_SCHEDULER"]:
         scheduler = BackgroundScheduler(timezone=SHANGHAI)
         scheduler.add_job(lambda: _collection_job(app, True, "scheduled-catalog"), "cron",
@@ -376,4 +382,3 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "7001")), debug=False)
-

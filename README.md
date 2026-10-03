@@ -75,3 +75,21 @@ Starts a manual catalogue refresh and mastery collection. Returns HTTP 202 with 
 ### `GET /api/v1/plugin/version`
 
 Returns the newest directory name from the configured plugin version endpoint.
+
+## Temporary frontend compatibility API
+
+The existing frontend can keep its current API calls. These five endpoints are available both at the root and under `/api` (for example, `/tankList` and `/api/tankList`). The frontend development proxy currently strips `/api`; production can use an empty `API_PREFIX` or `/api`.
+
+Responses use the legacy envelope `{ "errCode": 0, "data": ... }`. Business errors return HTTP 200 with a nonzero `errCode`, a `msg`, and an endpoint-appropriate empty `data`, so existing frontend handlers can read the error. The `/api/v1` routes retain their own response envelopes and HTTP error statuses.
+
+| Endpoint | Compatibility behavior |
+| --- | --- |
+| `GET /tankList` | Accepts `page`, `size` (20/40/100), existing tank filters, `player_id`, `sort`, and Ant Design `order=ascend/descend`. Returns `data.list` and `data.total`; tank IDs are `_id`, flags are numeric `premium`/`collector_vehicle`, and player badges use `pl.mastery`/`pl.moe`. |
+| `GET /preData` | Accepts optional `pid` and `pn`. Returns `nations`, `types`, `tiers`, `lastUpdate`, and optional `player` with `battTotal`, `winRate`, `wgr`, numeric `eff`, and numeric `effDelta`. Unavailable player summaries return `player: null`. |
+| `POST /bindUser` | JSON body: `{ "nickname": "..." }`. Returns the account array directly in `data`, preserving `account_id`, `account_name`, and `clan_tag`. Error codes: 20001 for invalid/short nicknames, 20002 for no match, 20003 for upstream failure. |
+| `GET /history?id=...` | Returns `data.list` with `date`, `mastery_65`, `mastery_85`, `mastery_95`, and `ace`, ordered by date and restricted to completed collection runs. |
+| `GET /modVersion` | Returns the plugin version string directly in `data`. |
+
+The adapters reuse v1 handlers and SQLite data. A player with no recorded vehicles receives an empty tank list. Upload/download badge processing and comments are excluded. Historical data follows the refactored database's migrated observations; this layer does not recreate MongoDB fields discarded during migration.
+
+Run the compatibility and v1 regression checks with `python -m unittest test_compat -v`. Tests use temporary SQLite databases, disable scheduling, and mock external player/version services.
