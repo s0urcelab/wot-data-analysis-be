@@ -13,3 +13,11 @@ run/
 typings/
 .nyc_output/
 deprecated/
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.db
+data/
