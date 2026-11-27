@@ -1,0 +1,14 @@
+services:
+  wds:
+    image: s0urce1911/wds:refactor-python-sqlite
+    ports:
+      - "7001:7001"
+    environment:
+      SQLITE_PATH: /wds/data/wot.db
+      # SCHEDULER_ENABLED: "1"
+      MOD_VERSION_URL: http://host.docker.internal:7003/wot/?json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/wds/data
+    restart: unless-stopped
