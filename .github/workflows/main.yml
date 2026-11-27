@@ -12,9 +12,15 @@ name: Create and publish a Docker image
 on:
   push:
     branches: ['master']
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '要构建的分支'
+        required: true
+        default: 'master'
+        type: string
 
 env:
-  REGISTRY: ghcr.io
   IMAGE_NAME: s0urce1911/wds
 
 jobs:
@@ -22,22 +28,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.sha }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      # - name: Log in to the Container registry
-      #   uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-      #   with:
-      #     registry: ${{ env.REGISTRY }}
-      #     username: ${{ github.actor }}
-      #     password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -45,16 +43,43 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Manual image tag
+        id: tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          ref="${{ inputs.branch }}"
+          ref="${ref#refs/heads/}"
+          name=$(printf '%s' "$ref" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]#-#g; s#-{2,}#-#g; s#^-##; s#-$##')
+          if [ -z "$name" ]; then
+            echo "分支名无法转换成镜像标签: ${{ inputs.branch }}" >&2
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
+        if: github.event_name != 'workflow_dispatch'
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           images: ${{ env.IMAGE_NAME }}
+
+      - name: Extract metadata for manual build
+        id: meta_manual
+        if: github.event_name == 'workflow_dispatch'
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.tag.outputs.name }}
+            type=raw,value=sha-${{ steps.tag.outputs.sha }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          # badgesModifier/dds2png.deb 只有 amd64
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags || steps.meta_manual.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels || steps.meta_manual.outputs.labels }}
