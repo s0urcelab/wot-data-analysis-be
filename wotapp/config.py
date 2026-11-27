@@ -8,7 +8,6 @@ class Settings:
     sqlite_path: str
     mod_version_url: str
     scheduler_enabled: bool
-    cors_origins: tuple[str, ...]
 
 
 def get_settings() -> Settings:
@@ -21,5 +20,4 @@ def get_settings() -> Settings:
             "http://host.docker.internal:7003/wot/?json",
         ),
         scheduler_enabled=flag not in ("0", "false", "no"),
-        cors_origins=("https://wot.src.moe",),
     )

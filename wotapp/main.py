@@ -2,7 +2,6 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 from wotapp.config import get_settings
 from wotapp.database import init_db
@@ -26,14 +25,7 @@ async def lifespan(_app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    settings = get_settings()
     app = FastAPI(title="wot-data-analysis", lifespan=lifespan, default_response_class=UTF8JSONResponse)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=list(settings.cors_origins),
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
     app.include_router(router)
     return app
 
