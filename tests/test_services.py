@@ -238,3 +238,20 @@ def test_import_preserves_vehicle_history_and_partial_rows(db):
         assert orphan is not None
         orphan_snap = session.scalar(select(MasterySnapshot).where(MasterySnapshot.vehicle_id == 42))
         assert orphan_snap.mastery_65 == 10
+
+    with session_scope() as session:
+        import_documents(session, [], [{
+            "tank_id": 9,
+            "insert_date": when,
+            "mastery_85": 77,
+        }])
+
+    with session_scope() as session:
+        snaps = session.scalars(
+            select(MasterySnapshot).where(MasterySnapshot.vehicle_id == 9)
+        ).all()
+        assert len(snaps) == 1
+        assert snaps[0].mastery_85 == 77
+        assert snaps[0].mastery_65 == 11
+        assert snaps[0].mastery_95 == 300
+        assert snaps[0].ace == 2
